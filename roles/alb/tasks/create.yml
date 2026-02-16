@@ -1,7 +1,7 @@
 #SPDX-License-Identifier: MIT-0
 ---
 # tasks file for alb
-- name: Ensure ALB Security Group exists
+- name: Create Security Group for Application Load Balancer
   amazon.aws.ec2_security_group:
     name: "{{ alb_security_group_name }}"
     description: "Security group for Application Load Balancer"
@@ -23,7 +23,7 @@
     alb_security_group_id: "{{ alb_sg_result.group_id }}"
 
 # 2. Find Backend EC2 Instances
-- name: Get EC2 instances information
+- name: Find running EC2 instances for Target Group
   amazon.aws.ec2_instance_info:
     region: "{{ aws_region }}"
     filters:
@@ -70,7 +70,7 @@
   # register: target_group_result
 
 # 3. Create Target Group
-- name: "AWS CLI to create Target Group"
+- name: Create Target Group using AWS CLI
   ansible.builtin.command: >
     aws elbv2 create-target-group
     --name {{ target_group_name }}

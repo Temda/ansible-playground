@@ -1,11 +1,39 @@
 ---
+# Delete ALB infrastructure in reverse order
 
-- name: Delete ALB
+- name: Delete Application Load Balancer
   amazon.aws.elb_application_lb:
     name: "{{ alb_name }}"
     region: "{{ aws_region }}"
     state: absent
+    wait: true
   register: result_alb
 
-- debug:
-    var: result_alb
+- name: Display ALB deletion result
+  ansible.builtin.debug:
+    msg: "ALB '{{ alb_name }}' has been deleted"
+
+- name: Delete Target Group using AWS CLI
+  ansible.builtin.command: >
+    aws elbv2 delete-target-group
+    --target-group-arn {{ target_group_arn }}
+    --region {{ aws_region }}
+  register: result_target_group
+  changed_when: true
+  failed_when: false
+  when: target_group_arn is defined
+
+- name: Display Target Group deletion result
+  ansible.builtin.debug:
+    msg: "Target Group '{{ target_group_name }}' has been deleted"
+
+- name: Delete ALB Security Group
+  amazon.aws.ec2_security_group:
+    name: "{{ alb_security_group_name }}"
+    region: "{{ aws_region }}"
+    state: absent
+  register: result_alb_sg
+
+- name: Display ALB Security Group deletion result
+  ansible.builtin.debug:
+    msg: "ALB Security Group '{{ alb_security_group_name }}' has been deleted"
