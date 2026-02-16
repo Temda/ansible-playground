@@ -1,3 +1,10 @@
 ---
+# Main playbook - Complete infrastructure setup
 - name: Import EC2 Creation Playbook
   ansible.builtin.import_playbook: create_ec2.yml
+
+- name: Import Nginx Installation Playbook
+  ansible.builtin.import_playbook: install_nginx.yml
+
+- name: Import ALB Creation Playbook
+  ansible.builtin.import_playbook: create_alb_nginx.yml

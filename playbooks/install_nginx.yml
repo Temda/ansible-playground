@@ -1,12 +1,80 @@
 ---
-- name: Configure NGINX web server
+- name: Prepare EC2 instances for Nginx installation
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  collections:
+    - amazon.aws
+
+  vars:
+    aws_region: ap-southeast-7
+    project_tag: ansible-ohm-ec2-tag
+    ssh_private_key: /home/exit0x1/ansible-playground/keys/ansible-ohm-key.pem
+    ssh_user: ubuntu
+    boot_wait_time: 30
+
+  tasks:
+    - name: Discover and prepare EC2 instances
+      block:
+        - name: Find running EC2 instances by project tag
+          amazon.aws.ec2_instance_info:
+            region: "{{ aws_region }}"
+            filters:
+              "tag:project": "{{ project_tag }}"
+              "instance-state-name": "running"
+          register: ec2_instances
+
+        - name: Display found EC2 instances
+          ansible.builtin.debug:
+            msg:
+              - "Found {{ ec2_instances.instances | length }} running EC2 instance(s)"
+              - "Instance IDs: {{ ec2_instances.instances | map(attribute='instance_id') | list }}"
+
+        - name: Fail if no running EC2 instances found
+          ansible.builtin.fail:
+            msg: "No running EC2 instances found with tag 'project={{ project_tag }}'. Please run create_ec2.yml first."
+          when: ec2_instances.instances | length == 0
+
+        - name: Wait for EC2 instances to be SSH-ready
+          ansible.builtin.pause:
+            seconds: "{{ boot_wait_time }}"
+            prompt: "Waiting {{ boot_wait_time }}s for SSH to be available"
+          when: ec2_instances.instances | length > 0
+
+        - name: Add EC2 instances to dynamic inventory group
+          ansible.builtin.add_host:
+            name: "{{ item.public_ip_address }}"
+            groups: nginx_servers
+            ansible_user: "{{ ssh_user }}"
+            ansible_ssh_private_key_file: "{{ ssh_private_key }}"
+            ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o ConnectTimeout=10'
+            instance_id: "{{ item.instance_id }}"
+            instance_name: "{{ item.tags.Name | default('N/A') }}"
+          loop: "{{ ec2_instances.instances }}"
+          when: item.public_ip_address is defined
+          loop_control:
+            label: "{{ item.instance_id }}"
+
+- name: Install and configure Nginx on EC2 instances
   hosts: nginx_servers
   become: true
-  
+  gather_facts: true
+
   tasks:
-    - name: Include NGINX role for ansible-ohm-ec2
-      ansible.builtin.include_role:
-        name: nginx
-      when:
-        - hostvars[inventory_hostname]['instance_name'] is defined
-        - hostvars[inventory_hostname]['instance_name'] == 'ansible-ohm-ec2'
+    - name: Install and configure Nginx
+      block:
+        - name: Display target instance information
+          ansible.builtin.debug:
+            msg:
+              - "Target: {{ instance_name }}"
+              - "Instance ID: {{ instance_id }}"
+              - "IP Address: {{ ansible_host }}"
+
+        - name: Run Nginx installation and configuration
+          ansible.builtin.include_role:
+            name: nginx
+
+        - name: Display installation success
+          ansible.builtin.debug:
+            msg: "✓ Nginx successfully installed on {{ instance_name }}"

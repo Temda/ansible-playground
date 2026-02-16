@@ -1,109 +1,137 @@
 #SPDX-License-Identifier: MIT-0
 ---
 # tasks file for nginx
-- name: Update apt cache
-  ansible.builtin.apt:
-    update_cache: true
-    cache_valid_time: 3600
 
-- name: Install Nginx
-  ansible.builtin.apt:
-    name: nginx
-    state: present
-    update_cache: true
+# =========================================
+# 1. Install and Start Nginx
+# =========================================
+- name: Install and start Nginx service
+  block:
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
 
-- name: Ensure Nginx is started and enabled
-  ansible.builtin.systemd:
-    name: nginx
-    state: started
-    enabled: true
+    - name: Install Nginx
+      ansible.builtin.apt:
+        name: nginx
+        state: present
 
-- name: Remove default Nginx site
-  ansible.builtin.file:
-    path: /etc/nginx/sites-enabled/default
-    state: absent
-  notify: Reload nginx
+    - name: Ensure Nginx is started and enabled
+      ansible.builtin.systemd:
+        name: nginx
+        state: started
+        enabled: true
 
-- name: Remove old default config from conf.d
-  ansible.builtin.file:
-    path: /etc/nginx/conf.d/default.conf
-    state: absent
-  notify: Reload nginx
+# =========================================
+# 2. Clean Default Configuration
+# =========================================
+- name: Remove default Nginx configurations
+  block:
+    - name: Remove default Nginx site
+      ansible.builtin.file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+      notify: Reload nginx
 
-- name: Force handlers to run
-  ansible.builtin.meta: flush_handlers
+    - name: Remove old default config from conf.d
+      ansible.builtin.file:
+        path: /etc/nginx/conf.d/default.conf
+        state: absent
+      notify: Reload nginx
 
-- name: Ensure Nginx directories exist
-  ansible.builtin.file:
-    path: "{{ item }}"
-    state: directory
-    owner: root
-    group: root
-    mode: '0755'
-  loop:
-    - /etc/nginx/sites-available
-    - /etc/nginx/sites-enabled
+    - name: Flush handlers to apply changes
+      ansible.builtin.meta: flush_handlers
 
-- name: Deploy Nginx configuration
-  ansible.builtin.template:
-    src: nginx-backend.conf.j2
-    dest: "{{ nginx_config_path }}"
-    owner: root
-    group: root
-    mode: '0644'
-  notify: Reload nginx
+# =========================================
+# 3. Configure Nginx
+# =========================================
+- name: Configure Nginx for backend service
+  block:
+    - name: Ensure Nginx directories exist
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+      loop:
+        - /etc/nginx/sites-available
+        - /etc/nginx/sites-enabled
 
-- name: Enable Nginx backend site
-  ansible.builtin.file:
-    src: /etc/nginx/sites-available/backend
-    dest: /etc/nginx/sites-enabled/backend
-    state: link
-  notify: Reload nginx
+    - name: Deploy Nginx backend configuration
+      ansible.builtin.template:
+        src: nginx-backend.conf.j2
+        dest: "{{ nginx_config_path }}"
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Reload nginx
 
-- name: Create document root directory
-  ansible.builtin.file:
-    path: "{{ nginx_document_root }}"
-    state: directory
-    owner: www-data
-    group: www-data
-    mode: '0755'
+    - name: Enable Nginx backend site
+      ansible.builtin.file:
+        src: /etc/nginx/sites-available/backend
+        dest: /etc/nginx/sites-enabled/backend
+        state: link
+      notify: Reload nginx
 
-- name: Deploy custom index.html
-  ansible.builtin.template:
-    src: index.html.j2
-    dest: "{{ nginx_document_root }}/index.html"
-    owner: www-data
-    group: www-data
-    mode: '0644'
+# =========================================
+# 4. Setup Web Content
+# =========================================
+- name: Setup web content and health check
+  block:
+    - name: Create document root directory
+      ansible.builtin.file:
+        path: "{{ nginx_document_root }}"
+        state: directory
+        owner: www-data
+        group: www-data
+        mode: '0755'
 
-- name: Create health check file
-  ansible.builtin.copy:
-    content: "OK"
-    dest: "{{ nginx_document_root }}/health"
-    owner: www-data
-    group: www-data
-    mode: '0644'
+    - name: Deploy custom index.html
+      ansible.builtin.template:
+        src: index.html.j2
+        dest: "{{ nginx_document_root }}/index.html"
+        owner: www-data
+        group: www-data
+        mode: '0644'
 
-- name: Test Nginx configuration syntax
-  ansible.builtin.command: nginx -t
-  register: nginx_test
-  changed_when: false
+    - name: Create health check endpoint
+      ansible.builtin.copy:
+        content: "OK"
+        dest: "{{ nginx_document_root }}/health"
+        owner: www-data
+        group: www-data
+        mode: '0644'
 
-- name: Reload Nginx to apply new configuration
-  ansible.builtin.systemd:
-    name: nginx
-    state: reloaded
+# =========================================
+# 5. Verify and Finalize
+# =========================================
+- name: Verify Nginx installation
+  block:
+    - name: Test Nginx configuration syntax
+      ansible.builtin.command: nginx -t
+      register: nginx_test
+      changed_when: false
+      failed_when: nginx_test.rc != 0
 
-- name: Wait for Nginx to be ready
-  ansible.builtin.wait_for:
-    port: "{{ nginx_listen_port }}"
-    delay: 2
-    timeout: 30
+    - name: Flush all pending handlers
+      ansible.builtin.meta: flush_handlers
 
-- name: Display Nginx status
-  ansible.builtin.debug:
-    msg:
-      - "Nginx successfully installed and configured"
-      - "Server: {{ ansible_hostname }}"
-      - "Private IP: {{ ansible_default_ipv4.address }}"
-      - "Health check: http://localhost{{ health_check_path }}"
+    - name: Wait for Nginx to be ready
+      ansible.builtin.wait_for:
+        port: "{{ nginx_listen_port }}"
+        delay: 2
+        timeout: 30
+        state: started
+
+    - name: Display Nginx status
+      ansible.builtin.debug:
+        msg:
+          - "=========================================="
+          - "Nginx Installation Complete"
+          - "=========================================="
+          - "Server: {{ ansible_hostname }}"
+          - "Private IP: {{ ansible_default_ipv4.address }}"
+          - "Health check: http://{{ ansible_default_ipv4.address }}{{ health_check_path }}"
+          - "=========================================="
