@@ -1,0 +1,33 @@
+---
+- name: Destroy Infrastructure
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  collections:
+    - amazon.aws
+
+  vars_files:
+    - ../config/aws_config.yaml
+
+  tasks:
+    - block:
+      - name: Delete EC2 Instance
+        ansible.builtin.include_role:
+          name: ec2_instance
+        vars:
+          ec2_state: absent
+
+      - name: Delete Security Group
+        ansible.builtin.include_role:
+          name: security_group
+        vars:
+          sg_state: absent
+
+      - name: Delete Application Load Balancer
+        ansible.builtin.include_role:
+          name: alb
+        vars:
+          alb_state: absent
+            
+      tags: destroy

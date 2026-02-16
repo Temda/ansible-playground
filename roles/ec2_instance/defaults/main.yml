@@ -10,8 +10,7 @@ key_name: test-key-ohm
 ssh_private_key_file: /home/exit0x1/ansible-playground/keys/ansible-ohm-key.pem
 
 subnet_id: subnet-0b75fdf2e50f4a191
-security_group:
-  - "{{ result_security_group.group_id }}"
+security_group: []
 
 ec2_tags:
   project: ansible-ohm-ec2-tag

@@ -1,0 +1,13 @@
+---
+
+- name: Delete EC2 Instance
+  amazon.aws.ec2_instance:
+    filters:
+      tag:Name: "{{ instance_name }}"
+      instance-state-name: running
+    region: "{{ aws_region }}"
+    state: absent
+  register: result_ec2_instance
+
+- debug:
+    var: result_ec2_instance

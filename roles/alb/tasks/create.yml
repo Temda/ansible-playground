@@ -1,0 +1,137 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for alb
+- name: Ensure ALB Security Group exists
+  amazon.aws.ec2_security_group:
+    name: "{{ alb_security_group_name }}"
+    description: "Security group for Application Load Balancer"
+    vpc_id: "{{ vpc_id }}"
+    region: "{{ aws_region }}"
+    rules:
+      - proto: tcp
+        ports:
+          - "{{ alb_listener_port }}"
+        cidr_ip: 0.0.0.0/0
+        rule_desc: "Allow HTTP from anywhere"
+    tags:
+      project: "{{ project_name }}"
+
+  register: alb_sg_result
+
+- name: Set ALB Security Group ID
+  ansible.builtin.set_fact:
+    alb_security_group_id: "{{ alb_sg_result.group_id }}"
+
+# 2. Find Backend EC2 Instances
+- name: Get EC2 instances information
+  amazon.aws.ec2_instance_info:
+    region: "{{ aws_region }}"
+    filters:
+      "tag:project": "{{ project_name_tag }}"
+      "instance-state-name": "running"
+  register: ec2_instances_info
+
+- name: Display found instances
+  ansible.builtin.debug:
+    msg:
+      - "Found {{ ec2_instances_info.instances | length }} running EC2 instance(s)"
+      - "{{ ec2_instances_info.instances | map(attribute='instance_id') | list }}"
+
+- name: Fail if no running EC2 instances found
+  ansible.builtin.fail:
+    msg: "No running EC2 instances found with tag 'project={{ project_name }}'. Please run the EC2 setup playbook first."
+  when: ec2_instances_info.instances | length == 0
+
+# 3. Create Target Group
+# - name: Create Target Group
+#   community.aws.elb_target_group:
+#     name: "my-targets-ohm"
+#     region: "ap-southeast-7"
+#     protocol: "HTTP"
+#     port: "80"
+#     vpc_id: "vpc-0c835f6ed01bab9a0"
+    # health_check_path: "{{ health_check_path }}"
+    # health_check_protocol: "{{ health_check_protocol }}"
+    # health_check_interval: "{{ health_check_interval }}"
+    # health_check_timeout: "{{ health_check_timeout }}"
+    # healthy_threshold_count: "{{ health_check_healthy_threshold }}"
+    # unhealthy_threshold_count: "{{ health_check_unhealthy_threshold }}"
+    # successful_response_codes: "{{ health_check_matcher }}"
+    # deregistration_delay_timeout: 30
+    # stickiness_enabled: true
+    # stickiness_type: lb_cookie
+    # stickiness_lb_cookie_duration: 86400
+    # tags:
+    #   project: "ohm"
+    #   Project: "xx-ohm"
+      # project: "{{ project_name }}"
+
+  #   state: present
+  # register: target_group_result
+
+# 3. Create Target Group
+- name: "AWS CLI to create Target Group"
+  ansible.builtin.command: >
+    aws elbv2 create-target-group
+    --name {{ target_group_name }}
+    --protocol {{ target_group_protocol }}
+    --port {{ target_group_port }}
+    --vpc-id {{ target_group_vpc_id }}
+    --region {{ aws_region }}
+    --tags Key=project,Value={{ project_name }}
+    --output json
+  register: target_group_create_result
+  changed_when: true
+
+- name: Parse Target Group ARN from CLI output
+  ansible.builtin.set_fact:
+    target_group_result:
+      target_group_arn: "{{ (target_group_create_result.stdout | from_json).TargetGroups[0].TargetGroupArn }}"
+      target_group_name: "{{ target_group_name }}"
+
+- name: Display Target Group info
+  ansible.builtin.debug:
+    msg:
+      - "Target Group Name: {{ target_group_result.target_group_name }}"
+      - "Target Group ARN: {{ target_group_result.target_group_arn }}"
+
+# 4. Create ALB
+- name: Create Application Load Balancer
+  community.aws.elb_application_lb:
+    name: "{{ alb_name }}"
+    region: "{{ aws_region }}"
+    scheme: "{{ alb_scheme }}"
+    ip_address_type: "{{ alb_ip_address_type }}"
+    security_groups:
+      - "{{ alb_security_group_id }}"
+    subnets: "{{ subnet_ids }}"
+    listeners:
+      - Protocol: "{{ alb_listener_protocol }}"
+        Port: "{{ alb_listener_port }}"
+        DefaultActions:
+          - Type: forward
+            TargetGroupArn: "{{ target_group_result.target_group_arn }}"
+    tags:
+      project: "{{ project_name }}"
+    state: present
+    wait: true
+    wait_timeout: "{{ alb_wait_timeout }}"
+  register: alb_result
+
+# 5. Register Instances
+- name: Register EC2 instances with Target Group
+  community.aws.elb_target:
+    region: "{{ aws_region }}"
+    target_group_arn: "{{ target_group_result.target_group_arn }}"
+    target_id: "{{ item.instance_id }}"
+    target_port: "{{ target_group_port }}"
+    state: present
+  loop: "{{ ec2_instances_info.instances }}"
+
+- name: Display target health status
+  ansible.builtin.debug:
+    msg: "Target health check completed. Status: {{ target_health.targets | default([]) | map(attribute='target_health.state') | list }}"
+
+- name: Display Load Balancer URL
+  ansible.builtin.debug:
+    msg: "Access your app at: http://{{ alb_result.dns_name }}"

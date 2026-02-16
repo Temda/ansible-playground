@@ -1,0 +1,17 @@
+---  
+- name: Query running instances using this SG
+  amazon.aws.ec2_instance_info:
+    region: "{{ aws_region }}"
+    filters:
+      instance.group-name: "{{ security_group_name }}"
+      instance-state-name: running
+  register: ec2_using_sg
+
+- name: Delete Security Group
+  amazon.aws.ec2_group:
+    name: "{{ security_group_name }}"
+    region: "{{ aws_region }}"
+    state: absent
+
+- debug:
+    msg: "Security group removed"

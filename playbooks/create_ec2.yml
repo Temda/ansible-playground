@@ -17,10 +17,16 @@
         - name: Create Security Group
           ansible.builtin.include_role:
             name: security_group
+          vars:
+            sg_state: present
 
         - name: Create EC2 Instance
           ansible.builtin.include_role:
             name: ec2_instance
-            
+          vars:
+            ec2_state: present
+            security_group:
+              - "{{ sg_result.group_id }}"
+
       tags: provision
 

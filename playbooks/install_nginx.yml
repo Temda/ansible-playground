@@ -1,6 +1,6 @@
 ---
 - name: Configure NGINX web server
-  hosts: all
+  hosts: nginx_servers
   become: true
   
   tasks:

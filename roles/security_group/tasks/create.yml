@@ -1,0 +1,22 @@
+---
+- name: Create Security Group
+  amazon.aws.ec2_group:
+    name: "{{ security_group_name }}"
+    description: "{{ description }}"
+    vpc_id: "{{ vpc_id }}"
+    region: "{{ aws_region }}"
+    state: present
+    rules:
+      - proto: tcp
+        from_port: 22
+        to_port: 22
+        cidr_ip: 0.0.0.0/0
+      - proto: tcp
+        from_port: 80
+        to_port: 80
+        cidr_ip: 0.0.0.0/0
+    tags: "{{ sg_tags }}"
+  register: sg_result
+
+- debug:
+    msg: "Created SG ID {{ sg_result.group_id }}"

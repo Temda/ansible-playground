@@ -1,0 +1,11 @@
+---
+
+- name: Delete ALB
+  amazon.aws.elb_application_lb:
+    name: "{{ alb_name }}"
+    region: "{{ aws_region }}"
+    state: absent
+  register: result_alb
+
+- debug:
+    var: result_alb
