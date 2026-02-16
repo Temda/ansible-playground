@@ -13,27 +13,30 @@
   ansible.builtin.debug:
     msg: "ALB '{{ alb_name }}' has been deleted"
 
-- name: Delete Target Group using AWS CLI
-  ansible.builtin.command: >
-    aws elbv2 delete-target-group
-    --target-group-arn {{ target_group_arn }}
-    --region {{ aws_region }}
+- name: Delete Target Group
+  community.aws.elb_target_group:
+    name: "{{ target_group_name }}"
+    region: "{{ aws_region }}"
+    state: absent
   register: result_target_group
-  changed_when: true
   failed_when: false
-  when: target_group_arn is defined
+  ignore_errors: true
 
 - name: Display Target Group deletion result
   ansible.builtin.debug:
-    msg: "Target Group '{{ target_group_name }}' has been deleted"
+    msg: "{{ 'Target Group deleted' if result_target_group is succeeded else 'Target Group deletion skipped (not found or already deleted)' }}"
 
-- name: Delete ALB Security Group
+- name: Wait for ALB network interfaces to be cleaned up
   amazon.aws.ec2_security_group:
     name: "{{ alb_security_group_name }}"
     region: "{{ aws_region }}"
     state: absent
   register: result_alb_sg
+  retries: 5
+  delay: 15
+  until: result_alb_sg is succeeded
+  ignore_errors: true
 
 - name: Display ALB Security Group deletion result
   ansible.builtin.debug:
-    msg: "ALB Security Group '{{ alb_security_group_name }}' has been deleted"
+    msg: "{{ 'ALB Security Group deleted' if result_alb_sg is succeeded else 'Security Group deletion skipped (may have dependencies)' }}"

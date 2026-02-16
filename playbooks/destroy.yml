@@ -12,6 +12,12 @@
 
   tasks:
     - block:
+      - name: Delete Application Load Balancer
+        ansible.builtin.include_role:
+          name: alb
+        vars:
+          alb_state: absent
+
       - name: Delete EC2 Instance
         ansible.builtin.include_role:
           name: ec2_instance
@@ -23,11 +29,5 @@
           name: security_group
         vars:
           sg_state: absent
-
-      - name: Delete Application Load Balancer
-        ansible.builtin.include_role:
-          name: alb
-        vars:
-          alb_state: absent
             
       tags: destroy

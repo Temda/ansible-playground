@@ -25,6 +25,16 @@
               "instance-state-name": "running"
           register: ec2_instances
 
+        # - name: Wait before proceeding
+        #   ansible.builtin.pause:
+        #     seconds: 30
+        #   register: pause_result
+
+        # - name: Proceed after pause completes
+        #   ansible.builtin.debug:
+        #     msg: "Pause completed, proceeding with next tasks"
+          # when: pause_result.elapsed >= 30
+
         - name: Display found EC2 instances
           ansible.builtin.debug:
             msg:

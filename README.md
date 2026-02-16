@@ -22,6 +22,16 @@ ansible-galaxy collection install nginxinc.nginx_core
 
 ## Run Playbook
 
+Run All Tasks
+```bash
+ansible-playbook -i inventories/dev/hosts.yml playbooks/main.yml
+```
+
+Delete ALL
+```bash
+ansible-playbook -i inventories/dev/hosts.yml playbooks/destroy.yml
+```
+
 Run the EC2 creation playbook:
 
 ```bash
