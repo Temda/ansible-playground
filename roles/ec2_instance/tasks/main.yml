@@ -1,0 +1,21 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for ec2_instance
+
+- name: Launch EC2 Instance
+  amazon.aws.ec2_instance:
+    name: "{{ instance_name }}"
+    key_name: "{{ key_name }}"
+    instance_type: "{{ instance_type }}"
+    image_id: "{{ ami_id }}"
+    region: "{{ aws_region }}"
+    subnet_id: "{{ subnet_id }}"
+    security_groups: "{{ security_group }}"
+    wait: yes
+    count: 1
+    tags: "{{ ec2_tags }}"
+  register: result_ec2_instance
+
+- name: Display EC2 Instance Result
+  debug:
+    var: result_ec2_instance

@@ -1,0 +1,26 @@
+- name: Setup Application Load Balancer
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  become: false
+  
+  collections:
+    - amazon.aws
+    - community.aws
+
+  tasks:
+    - name: Create ALB and Target Group
+      ansible.builtin.include_role:
+        name: alb
+      vars:
+        alb_state: present
+
+    - name: Display setup summary
+      ansible.builtin.debug:
+        msg:
+          - "=========================================="
+          - "ALB Setup Completed Successfully"
+          - "=========================================="
+          - "Your application is now accessible"
+          - "Check the ALB DNS name above"
+          - "=========================================="

@@ -1,0 +1,12 @@
+---
+- name: Configure NGINX web server
+  hosts: all
+  become: true
+  
+  tasks:
+    - name: Include NGINX role for ansible-ohm-ec2
+      ansible.builtin.include_role:
+        name: nginx
+      when:
+        - hostvars[inventory_hostname]['instance_name'] is defined
+        - hostvars[inventory_hostname]['instance_name'] == 'ansible-ohm-ec2'

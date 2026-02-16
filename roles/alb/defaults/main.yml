@@ -1,0 +1,36 @@
+#SPDX-License-Identifier: MIT-0
+---
+# defaults file for alb
+
+project_name: "ansible-ohm-ec2"
+project_name_tag: "ansible-ohm-ec2-tag"
+aws_region: "ap-southeast-7"
+vpc_id: "vpc-xxxx"
+target_group_vpc_id: "vpc-xxxx"
+
+subnet_ids:
+  - subnet-xxxx    # ap-southeast-7a
+  - subnet-xxxx    # ap-southeast-7b
+
+alb_security_group_name: "alb-security-group"
+
+alb_name: "my-application-lb"
+alb_scheme: "internet-facing"
+alb_ip_address_type: "ipv4"
+alb_listener_protocol: "HTTP"
+alb_listener_port: 80
+alb_wait_timeout: 300
+
+# Target Group Configuration
+target_group_name: "my-targets-ohm"
+target_group_protocol: "HTTP"
+target_group_port: 80
+
+# Health Check Configuration
+health_check_path: "/health"
+health_check_protocol: "HTTP"
+health_check_interval: 30
+health_check_timeout: 5
+health_check_healthy_threshold: 2
+health_check_unhealthy_threshold: 2
+health_check_matcher: "200"

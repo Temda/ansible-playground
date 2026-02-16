@@ -1,0 +1,9 @@
+#SPDX-License-Identifier: MIT-0
+---
+# defaults file for security_group
+security_group_name: ansible-ohm-sg
+description: Security group for Ansible OHM EC2 instance
+aws_region: ap-southeast-7
+vpc_id: vpc-0c835f6ed01bab9a0
+sg_tags:
+  project: ansible-ohm-sg-tag

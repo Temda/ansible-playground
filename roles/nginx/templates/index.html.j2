@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ project_name }} - Backend Server</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+        }
+        .container {
+            text-align: center;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            max-width: 800px;
+        }
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .server-info {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin: 2rem 0;
+        }
+        .info-item {
+            margin: 0.5rem 0;
+            font-size: 1.1rem;
+        }
+        .label {
+            font-weight: bold;
+            color: #ffd700;
+        }
+        .emoji {
+            font-size: 4rem;
+            margin: 1rem 0;
+        }
+        .footer {
+            margin-top: 2rem;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="emoji">🚀</div>
+        <h1>{{ project_name }}</h1>
+        <p style="font-size: 1.3rem; margin-bottom: 1rem;">Backend Server Running</p>
+        
+        <div class="server-info">
+            <div class="info-item">
+                <span class="label">Environment:</span> {{ app_environment }}
+            </div>
+{% if nginx_show_hostname %}
+            <div class="info-item">
+                <span class="label">Hostname:</span> {{ ansible_hostname }}
+            </div>
+            <div class="info-item">
+                <span class="label">Private IP:</span> {{ ansible_default_ipv4.address }}
+            </div>
+{% endif %}
+            <div class="info-item">
+                <span class="label">Instance Type:</span> {{ ec2_instance_type }}
+            </div>
+            <div class="info-item">
+                <span class="label">Region:</span> {{ aws_region }}
+            </div>
+        </div>
+
+        <p style="font-size: 1.2rem; margin-top: 1.5rem;">
+            ✅ This instance is behind AWS Application Load Balancer
+        </p>
+
+        <p style="font-size: 1.2rem; margin-top: 1.5rem;">
+            ✅ Hello
+        </p>
+
+        <div class="footer">
+            <p>Managed by Ansible | Project: {{ project_name }}</p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,26 @@
+---
+- name: Create EC2 via role
+  hosts: all
+  connection: local
+  gather_facts: false
+  become: false
+
+  collections:
+    - amazon.aws
+
+  vars_files:
+    - ../config/aws_config.yaml
+    
+  tasks:
+    - name: Provision infra
+      block:
+        - name: Create Security Group
+          ansible.builtin.include_role:
+            name: security_group
+
+        - name: Create EC2 Instance
+          ansible.builtin.include_role:
+            name: ec2_instance
+            
+      tags: provision
+

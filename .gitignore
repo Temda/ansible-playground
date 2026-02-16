@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+myansible/
+venv/
+env/
+ENV/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Ansible
+*.retry
+/tmp/
+/logs/
+ansible.log
+*.log
+
+# AWS Credentials
+*.pem
+*.key
+keys/
+.aws/
+credentials
+
+# Sensitive Data
+vars/secrets.yml
+*_secret.yml
+*_credentials.yml
+
+# Inventory Cache
+/tmp/ansible_inventory_cache/
+/tmp/ansible_facts_cache/
+/tmp/ec2_instance_ids_*.yml
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Backup files
+*.backup
+*.bak
+*.old
